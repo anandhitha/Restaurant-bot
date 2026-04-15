@@ -1,0 +1,55 @@
+{
+  "restaurant": "The Spice Kitchen",
+  "categories": [
+    {
+      "name": "Starters",
+      "items": [
+        {"name": "Chili Cheese Fries", "price": 5.99, "vegetarian": false, "spicy": true, "allergens": ["dairy"], "calories": 450},
+        {"name": "Calamari Rings", "price": 5.99, "vegetarian": false, "spicy": false, "allergens": ["gluten", "seafood"], "calories": 380},
+        {"name": "Onion Rings", "price": 3.49, "vegetarian": true, "spicy": false, "allergens": ["gluten"], "calories": 320},
+        {"name": "Mac & Cheese", "price": 3.99, "vegetarian": true, "spicy": false, "allergens": ["dairy", "gluten"], "calories": 410},
+        {"name": "Paneer Tikka", "price": 6.49, "vegetarian": true, "spicy": true, "allergens": ["dairy"], "calories": 290},
+        {"name": "Spring Rolls", "price": 4.99, "vegetarian": true, "spicy": false, "allergens": ["gluten"], "calories": 260}
+      ]
+    },
+    {
+      "name": "Main Course",
+      "items": [
+        {"name": "Original Double Steakburger", "price": 6.49, "vegetarian": false, "spicy": false, "allergens": ["gluten", "dairy"], "calories": 680},
+        {"name": "Frisco Melt", "price": 10.29, "vegetarian": false, "spicy": false, "allergens": ["gluten", "dairy"], "calories": 750},
+        {"name": "Garlic Double Steakburger", "price": 7.49, "vegetarian": false, "spicy": false, "allergens": ["gluten", "dairy"], "calories": 720},
+        {"name": "Chicken Biryani", "price": 8.99, "vegetarian": false, "spicy": true, "allergens": ["none"], "calories": 550},
+        {"name": "Butter Chicken", "price": 9.49, "vegetarian": false, "spicy": false, "allergens": ["dairy"], "calories": 490},
+        {"name": "Margherita Pizza", "price": 7.99, "vegetarian": true, "spicy": false, "allergens": ["gluten", "dairy"], "calories": 620},
+        {"name": "Paneer Butter Masala", "price": 8.49, "vegetarian": true, "spicy": false, "allergens": ["dairy"], "calories": 420},
+        {"name": "Veg Fried Rice", "price": 6.99, "vegetarian": true, "spicy": false, "allergens": ["none"], "calories": 380}
+      ]
+    },
+    {
+      "name": "Sides",
+      "items": [
+        {"name": "Thin n Crispy Fries", "price": 2.99, "vegetarian": true, "spicy": false, "allergens": ["none"], "calories": 280},
+        {"name": "Naan", "price": 1.99, "vegetarian": true, "spicy": false, "allergens": ["gluten", "dairy"], "calories": 180},
+        {"name": "Roti", "price": 1.49, "vegetarian": true, "spicy": false, "allergens": ["gluten"], "calories": 120},
+        {"name": "Garlic Bread", "price": 2.49, "vegetarian": true, "spicy": false, "allergens": ["gluten", "dairy"], "calories": 220}
+      ]
+    },
+    {
+      "name": "Drinks",
+      "items": [
+        {"name": "Mango Lassi", "price": 3.49, "vegetarian": true, "spicy": false, "allergens": ["dairy"], "calories": 180},
+        {"name": "Masala Chai", "price": 2.49, "vegetarian": true, "spicy": false, "allergens": ["dairy"], "calories": 90},
+        {"name": "Fresh Lime Soda", "price": 1.99, "vegetarian": true, "spicy": false, "allergens": ["none"], "calories": 60},
+        {"name": "Cold Coffee", "price": 3.99, "vegetarian": true, "spicy": false, "allergens": ["dairy"], "calories": 220}
+      ]
+    },
+    {
+      "name": "Desserts",
+      "items": [
+        {"name": "Gulab Jamun", "price": 3.99, "vegetarian": true, "spicy": false, "allergens": ["dairy", "gluten"], "calories": 350},
+        {"name": "Chocolate Brownie", "price": 4.49, "vegetarian": true, "spicy": false, "allergens": ["dairy", "gluten", "eggs"], "calories": 420},
+        {"name": "Mango Kulfi", "price": 3.49, "vegetarian": true, "spicy": false, "allergens": ["dairy"], "calories": 200}
+      ]
+    }
+  ]
+}
