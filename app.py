@@ -1,4 +1,4 @@
-import os,json,logging,tempfile,threading
+import os,json,logging,tempfile,threading,asyncio
 import httpx
 from flask import Flask,jsonify
 from openai import OpenAI
@@ -59,7 +59,7 @@ def analyze_image_api(image_path):
     except:return{"tags":[],"description":""}
 
 async def start(update:Update,context:ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Welcome to The Spice Kitchen!\n\n1. Type your preference\n2. Send a voice message\n3. Send a food photo\n\nWhat are you in the mood for?")
+    await update.message.reply_text("Welcome to The Spice Kitchen!\n\n1. Type your preference\n2. Send a food photo\n\nWhat are you in the mood for?")
 
 async def handle_text(update:Update,context:ContextTypes.DEFAULT_TYPE):
     txt=update.message.text
@@ -92,41 +92,32 @@ async def handle_menu(update:Update,context:ContextTypes.DEFAULT_TYPE):
 
 flask_app=Flask(__name__)
 
-bot_started=False
-
-@flask_app.before_request
-def start_bot_once():
-    global bot_started
-    if not bot_started:
-        bot_started=True
-        t=threading.Thread(target=run_bot,daemon=True)
-        t.start()
-        logger.info("Bot thread launched")
-
 @flask_app.route("/")
 def home():
     return jsonify({"status":"running","bot":"Restaurant Recommendation Bot"})
 
 @flask_app.route("/health")
 def health():
-    return jsonify({"status":"healthy","bot_started":bot_started})
+    return jsonify({"status":"healthy"})
 
-def run_bot():
-    import asyncio
-    token=os.environ.get("TELEGRAM_BOT_TOKEN","")
-    if not token:logger.error("No TELEGRAM_BOT_TOKEN");return
-    loop=asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    app=Application.builder().token(token).build()
-    app.add_handler(CommandHandler("start",start))
-    app.add_handler(CommandHandler("help",start))
-    app.add_handler(CommandHandler("menu",handle_menu))
-    app.add_handler(MessageHandler(filters.TEXT&~filters.COMMAND,handle_text))
-    app.add_handler(MessageHandler(filters.PHOTO,handle_photo))
-    logger.info("Bot polling started")
-    app.run_polling()
+def run_flask():
+    port=int(os.environ.get("PORT",8000))
+    flask_app.run(host="0.0.0.0",port=port,use_reloader=False)
 
 if __name__=="__main__":
-    t=threading.Thread(target=run_bot,daemon=True)
+    # Flask in background thread
+    t=threading.Thread(target=run_flask,daemon=True)
     t.start()
-    flask_app.run(host="0.0.0.0",port=int(os.environ.get("PORT",8000)))
+    logger.info("Flask started in background")
+
+    # Bot in main thread
+    token=os.environ.get("TELEGRAM_BOT_TOKEN","")
+    if token:
+        app=Application.builder().token(token).build()
+        app.add_handler(CommandHandler("start",start))
+        app.add_handler(CommandHandler("help",start))
+        app.add_handler(CommandHandler("menu",handle_menu))
+        app.add_handler(MessageHandler(filters.TEXT&~filters.COMMAND,handle_text))
+        app.add_handler(MessageHandler(filters.PHOTO,handle_photo))
+        logger.info("Bot polling starting in main thread")
+        app.run_polling()
