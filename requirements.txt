@@ -3,3 +3,5 @@ python-telegram-bot==20.7
 openai==1.14.0
 httpx==0.25.2
 gunicorn==21.2.0
+azure-cognitiveservices-speech==1.37.0
+pydub==0.25.1
