@@ -58,8 +58,36 @@ def analyze_image_api(image_path):
         return{"tags":tags,"description":desc}
     except:return{"tags":[],"description":""}
 
+def speech_to_text(audio_path):
+    try:
+        import azure.cognitiveservices.speech as speechsdk
+        config=speechsdk.SpeechConfig(subscription=os.environ["SPEECH_KEY"],region=os.environ["SPEECH_REGION"])
+        config.speech_recognition_language="en-US"
+        audio=speechsdk.AudioConfig(filename=audio_path)
+        recognizer=speechsdk.SpeechRecognizer(speech_config=config,audio_config=audio)
+        result=recognizer.recognize_once()
+        if result.reason==speechsdk.ResultReason.RecognizedSpeech:
+            return result.text
+        logger.error(f"STT failed: {result.reason}")
+    except Exception as e:
+        logger.error(f"Speech error: {e}")
+    return ""
+
+def text_to_speech(text,output_path):
+    try:
+        import azure.cognitiveservices.speech as speechsdk
+        config=speechsdk.SpeechConfig(subscription=os.environ["SPEECH_KEY"],region=os.environ["SPEECH_REGION"])
+        config.speech_synthesis_voice_name="en-US-JennyNeural"
+        audio=speechsdk.AudioConfig(filename=output_path)
+        synthesizer=speechsdk.SpeechSynthesizer(speech_config=config,audio_config=audio)
+        result=synthesizer.speak_text_async(text).get()
+        return result.reason==speechsdk.ResultReason.SynthesizingAudioCompleted
+    except Exception as e:
+        logger.error(f"TTS error: {e}")
+    return False
+
 async def start(update:Update,context:ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Welcome to The Spice Kitchen!\n\n1. Type your preference\n2. Send a food photo\n\nWhat are you in the mood for?")
+    await update.message.reply_text("Welcome to The Spice Kitchen!\n\n1. Type your preference\n2. Send a voice message\n3. Send a food photo\n\nWhat are you in the mood for?")
 
 async def handle_text(update:Update,context:ContextTypes.DEFAULT_TYPE):
     txt=update.message.text
@@ -67,6 +95,44 @@ async def handle_text(update:Update,context:ContextTypes.DEFAULT_TYPE):
     clu=await call_clu(txt)
     rec=get_recommendation(txt,clu=clu)
     await update.message.reply_text(rec+f"\n\n[CLU: {clu['intent']} ({clu['confidence']:.0%})]")
+
+async def handle_voice(update:Update,context:ContextTypes.DEFAULT_TYPE):
+    logger.info("Voice received")
+    await update.message.reply_text("Processing your voice...")
+    voice_file=await update.message.voice.get_file()
+    with tempfile.NamedTemporaryFile(suffix=".ogg",delete=False) as tmp:
+        ogg_path=tmp.name
+        await voice_file.download_to_drive(ogg_path)
+    wav_path=ogg_path.replace(".ogg",".wav")
+    os.system(f"ffmpeg -i {ogg_path} -ar 16000 -ac 1 -y {wav_path} 2>/dev/null")
+    if not os.path.exists(wav_path):
+        try:
+            from pydub import AudioSegment
+            audio=AudioSegment.from_ogg(ogg_path)
+            audio=audio.set_frame_rate(16000).set_channels(1)
+            audio.export(wav_path,format="wav")
+        except Exception as e:
+            logger.error(f"Audio conversion failed: {e}")
+            await update.message.reply_text("Could not process audio. Please type your request.")
+            os.unlink(ogg_path)
+            return
+    text=speech_to_text(wav_path)
+    if not text:
+        await update.message.reply_text("Could not understand. Please try again or type your request.")
+        os.unlink(ogg_path)
+        if os.path.exists(wav_path):os.unlink(wav_path)
+        return
+    await update.message.reply_text(f'I heard: "{text}"\nFinding recommendations...')
+    clu=await call_clu(text)
+    rec=get_recommendation(text,clu=clu)
+    await update.message.reply_text(rec+f"\n\n[CLU: {clu['intent']} ({clu['confidence']:.0%})]")
+    with tempfile.NamedTemporaryFile(suffix=".wav",delete=False) as tmp:
+        tts_path=tmp.name
+    if text_to_speech(rec,tts_path):
+        await update.message.reply_voice(voice=open(tts_path,"rb"))
+        os.unlink(tts_path)
+    os.unlink(ogg_path)
+    if os.path.exists(wav_path):os.unlink(wav_path)
 
 async def handle_photo(update:Update,context:ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Analyzing your food image...")
@@ -101,16 +167,16 @@ def health():
     return jsonify({"status":"healthy"})
 
 def run_bot_async():
-    import asyncio
-    token=os.environ.get("TELEGRAM_BOT_TOKEN","")
-    if not token:logger.error("No TELEGRAM_BOT_TOKEN");return
     loop=asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+    token=os.environ.get("TELEGRAM_BOT_TOKEN","")
+    if not token:logger.error("No TELEGRAM_BOT_TOKEN");return
     app=Application.builder().token(token).build()
     app.add_handler(CommandHandler("start",start))
     app.add_handler(CommandHandler("help",start))
     app.add_handler(CommandHandler("menu",handle_menu))
     app.add_handler(MessageHandler(filters.TEXT&~filters.COMMAND,handle_text))
+    app.add_handler(MessageHandler(filters.VOICE,handle_voice))
     app.add_handler(MessageHandler(filters.PHOTO,handle_photo))
     logger.info("Bot polling starting...")
     loop.run_until_complete(app.initialize())
@@ -119,7 +185,6 @@ def run_bot_async():
     logger.info("Bot is now polling")
     loop.run_forever()
 
-# Start bot in background thread at module load (works with gunicorn)
 _bot_thread=threading.Thread(target=run_bot_async,daemon=True)
 _bot_thread.start()
 logger.info("Bot thread launched at module level")
