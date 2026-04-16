@@ -100,24 +100,29 @@ def home():
 def health():
     return jsonify({"status":"healthy"})
 
-def run_flask():
-    port=int(os.environ.get("PORT",8000))
-    flask_app.run(host="0.0.0.0",port=port,use_reloader=False)
+def run_bot_async():
+    import asyncio
+    token=os.environ.get("TELEGRAM_BOT_TOKEN","")
+    if not token:logger.error("No TELEGRAM_BOT_TOKEN");return
+    loop=asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    app=Application.builder().token(token).build()
+    app.add_handler(CommandHandler("start",start))
+    app.add_handler(CommandHandler("help",start))
+    app.add_handler(CommandHandler("menu",handle_menu))
+    app.add_handler(MessageHandler(filters.TEXT&~filters.COMMAND,handle_text))
+    app.add_handler(MessageHandler(filters.PHOTO,handle_photo))
+    logger.info("Bot polling starting...")
+    loop.run_until_complete(app.initialize())
+    loop.run_until_complete(app.start())
+    loop.run_until_complete(app.updater.start_polling())
+    logger.info("Bot is now polling")
+    loop.run_forever()
+
+# Start bot in background thread at module load (works with gunicorn)
+_bot_thread=threading.Thread(target=run_bot_async,daemon=True)
+_bot_thread.start()
+logger.info("Bot thread launched at module level")
 
 if __name__=="__main__":
-    # Flask in background thread
-    t=threading.Thread(target=run_flask,daemon=True)
-    t.start()
-    logger.info("Flask started in background")
-
-    # Bot in main thread
-    token=os.environ.get("TELEGRAM_BOT_TOKEN","")
-    if token:
-        app=Application.builder().token(token).build()
-        app.add_handler(CommandHandler("start",start))
-        app.add_handler(CommandHandler("help",start))
-        app.add_handler(CommandHandler("menu",handle_menu))
-        app.add_handler(MessageHandler(filters.TEXT&~filters.COMMAND,handle_text))
-        app.add_handler(MessageHandler(filters.PHOTO,handle_photo))
-        logger.info("Bot polling starting in main thread")
-        app.run_polling()
+    flask_app.run(host="0.0.0.0",port=int(os.environ.get("PORT",8000)))
