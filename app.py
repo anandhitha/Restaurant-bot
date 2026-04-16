@@ -112,8 +112,11 @@ def health():
     return jsonify({"status":"healthy","bot_started":bot_started})
 
 def run_bot():
+    import asyncio
     token=os.environ.get("TELEGRAM_BOT_TOKEN","")
     if not token:logger.error("No TELEGRAM_BOT_TOKEN");return
+    loop=asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     app=Application.builder().token(token).build()
     app.add_handler(CommandHandler("start",start))
     app.add_handler(CommandHandler("help",start))
